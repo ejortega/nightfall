@@ -24,8 +24,8 @@ use tokio::process::ChildStdout;
 use tokio::process::Command;
 use tokio::task::JoinHandle;
 
-use tokio_stream::wrappers::LinesStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::LinesStream;
 
 use tracing::debug;
 
@@ -340,8 +340,7 @@ impl Session {
     pub fn custom_init_seg(&self, start_num: u32) -> String {
         format!(
             "{}/{}_init.mp4",
-            self.profile_ctx.output_ctx.outdir,
-            start_num
+            self.profile_ctx.output_ctx.outdir, start_num
         )
     }
 

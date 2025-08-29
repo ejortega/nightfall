@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::prelude::*;
 use std::path::Path;
 
 use crate::NightfallError;
@@ -190,10 +190,7 @@ pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32
         while let Some(segment) = segments.pop_front() {
             // Here we normalize the DTS to be equal to the EPT/PTS and we also set the corrent
             // segment number.
-            segment
-                .gen_styp()
-                .set_segno(seq)
-                .write(&mut f)?;
+            segment.gen_styp().set_segno(seq).write(&mut f)?;
 
             seq += 1;
         }

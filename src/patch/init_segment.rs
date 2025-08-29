@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::prelude::*;
 use std::path::Path;
 
 use super::segment::Segment;

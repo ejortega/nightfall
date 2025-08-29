@@ -322,7 +322,7 @@ impl TranscodingProfile for VaapiTranscodeProfile {
                 return Err(NightfallError::ProfileNotSupported(format!(
                     "Profile {} for {} not supported by device.",
                     profile, codec
-                )))
+                )));
             }
         };
 
