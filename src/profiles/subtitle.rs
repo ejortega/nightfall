@@ -91,16 +91,16 @@ impl TranscodingProfile for AssExtractProfile {
         Some(args)
     }
 
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
         if ["ass", "ssa"].contains(&ctx.input_ctx.codec.as_str())
             && ctx.output_ctx.codec.as_str() == "ass"
         {
             return Ok(());
         }
 
-        Err(NightfallError::ProfileNotSupported(
+        Err(Box::new(NightfallError::ProfileNotSupported(
             "Profile only supports extracting ass subtitles.".into(),
-        ))
+        )))
     }
 
     fn tag(&self) -> &str {
