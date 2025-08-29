@@ -101,23 +101,23 @@ impl TranscodingProfile for H264TransmuxProfile {
 
     /// This profile technically could work on any codec since the codec is just `copy` here, but
     /// the container doesnt support it, so we will be constricting it down.
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
         if ctx.output_ctx.height.is_some()
             || ctx.output_ctx.width.is_some()
             || ctx.output_ctx.bitrate.is_some()
         {
-            return Err(NightfallError::ProfileNotSupported(
+            return Err(Box::new(NightfallError::ProfileNotSupported(
                 "Transmuxed streams cannot be resized.".into(),
-            ));
+            )));
         }
 
         if ctx.input_ctx.codec == ctx.output_ctx.codec && ctx.input_ctx.codec == "h264" {
             return Ok(());
         }
 
-        Err(NightfallError::ProfileNotSupported(
+        Err(Box::new(NightfallError::ProfileNotSupported(
             "Profile only supports h264 input and output codecs.".into(),
-        ))
+        )))
     }
 
     fn tag(&self) -> &str {
@@ -229,15 +229,15 @@ impl TranscodingProfile for H264TranscodeProfile {
         Some(args)
     }
 
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
         if ctx.output_ctx.codec == "h264" {
             return Ok(());
         }
 
-        Err(NightfallError::ProfileNotSupported(format!(
+        Err(Box::new(NightfallError::ProfileNotSupported(format!(
             "Got output codec {} but profile only supports `h264`.",
             ctx.output_ctx.codec
-        )))
+        ))))
     }
 
     fn tag(&self) -> &str {
@@ -306,15 +306,15 @@ impl TranscodingProfile for RawVideoTranscodeProfile {
         Some(args)
     }
 
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
         if ctx.output_ctx.codec == "rawvideo" {
             return Ok(());
         }
 
-        Err(NightfallError::ProfileNotSupported(format!(
+        Err(Box::new(NightfallError::ProfileNotSupported(format!(
             "Codec {} is not supported.",
             ctx.output_ctx.codec
-        )))
+        ))))
     }
 
     fn tag(&self) -> &str {

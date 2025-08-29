@@ -119,14 +119,14 @@ impl TranscodingProfile for AacTranscodeProfile {
         Some(args)
     }
 
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
         if ctx.output_ctx.codec == "aac" {
             return Ok(());
         }
 
-        Err(NightfallError::ProfileNotSupported(
+        Err(Box::new(NightfallError::ProfileNotSupported(
             "Profile not supported.".into(),
-        ))
+        )))
     }
 
     fn tag(&self) -> &str {
