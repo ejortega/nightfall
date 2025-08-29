@@ -137,14 +137,15 @@ impl Session {
 
         debug!(pid = self.child_pid, ffmpeg = %self.profile_ctx.ffmpeg_bin, ?args, "Started ffmpeg");
 
-        if !self.profile.is_stdio_stream() {
-            if let Some(stdout) = process.stdout.take() {
-                let stdout_parser_thread =
-                    StdoutParser::new(self.id.clone(), stdout, self.child_pid.clone().unwrap());
+        if !self.profile.is_stdio_stream()
+            && let Some(stdout) = process.stdout.take()
+        {
+            let stdout_parser_thread =
+                StdoutParser::new(self.id.clone(), stdout, self.child_pid.unwrap());
 
-                self._process = Some(tokio::spawn(stdout_parser_thread.handle()));
-            }
+            self._process = Some(tokio::spawn(stdout_parser_thread.handle()));
         }
+
         self.real_process = Some(process);
 
         Ok(())
@@ -221,20 +222,20 @@ impl Session {
     }
 
     pub fn pause(&mut self) {
-        if let Some(x) = self.child_pid {
-            if !self.is_throttled {
-                crate::utils::pause_proc(x as i32);
-                self.is_throttled = true;
-            }
+        if let Some(x) = self.child_pid
+            && !self.is_throttled
+        {
+            crate::utils::pause_proc(x as i32);
+            self.is_throttled = true;
         }
     }
 
     pub fn cont(&mut self) {
-        if let Some(x) = self.child_pid {
-            if self.is_throttled {
-                crate::utils::cont_proc(x as i32);
-                self.is_throttled = false;
-            }
+        if let Some(x) = self.child_pid
+            && self.is_throttled
+        {
+            crate::utils::cont_proc(x as i32);
+            self.is_throttled = false;
         }
     }
 
@@ -245,7 +246,7 @@ impl Session {
 
     pub fn current_chunk(&self) -> u32 {
         let frame = match self.profile.stream_type() {
-            StreamType::Audio { .. } => {
+            StreamType::Audio => {
                 self.get_key("out_time_us")
                     .map(|x| x.parse::<u64>().unwrap_or(0))
                     .unwrap_or(0)
@@ -253,7 +254,7 @@ impl Session {
                     / 1000
                     * 24
             }
-            StreamType::Video { .. } => self
+            StreamType::Video => self
                 .get_key("frame")
                 .map(|x| x.parse::<u64>().unwrap_or(0))
                 .unwrap_or(0),
@@ -261,8 +262,8 @@ impl Session {
         } as u32;
 
         match self.profile.stream_type() {
-            StreamType::Audio { .. } => (frame / (self.chunk_size * 24)).max(self.last_chunk),
-            StreamType::Video { .. } => {
+            StreamType::Audio => (frame / (self.chunk_size * 24)).max(self.last_chunk),
+            StreamType::Video => {
                 frame / (self.chunk_size * 24) + self.profile_ctx.output_ctx.start_num
             }
             _ => 0,

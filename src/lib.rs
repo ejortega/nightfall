@@ -92,7 +92,7 @@ impl StateManager {
         } else {
             tracing::error!(profile = ?profile_args, "Supplied profile chain is empty");
 
-            return Err(NightfallError::ProfileChainExhausted);
+            return Err(Box::new(NightfallError::ProfileChainExhausted));
         };
 
         let chain = profile_chain
@@ -146,14 +146,12 @@ impl StateManager {
 
         // If ffmpeg abrupty closes we want to move down the profile chain and try other profiles
         // until we get something that works or we exhaust all our profiles.
-        if let Some(status) = session.exit_status.take() {
-            if !status.success() {
-                if let Some(x) = session.next_profile() {
-                    info!("Session {} chunk={} trying profile {}", &id, chunk, x);
-                    session.reset_to(session.start_num());
-                } else {
-                    return Err(NightfallError::ProfileChainExhausted);
-                }
+        if session.exit_status.take().is_some_and(|s| !s.success()) {
+            if let Some(x) = session.next_profile() {
+                info!("Session {} chunk={} trying profile {}", &id, chunk, x);
+                session.reset_to(session.start_num());
+            } else {
+                return Err(Box::new(NightfallError::ProfileChainExhausted));
             }
         }
 
@@ -181,7 +179,7 @@ impl StateManager {
             return Ok(session.custom_init_seg(chunk));
         }
 
-        Err(NightfallError::ChunkNotDone)
+        Err(Box::new(NightfallError::ChunkNotDone))
     }
 
     #[handler]
@@ -224,7 +222,7 @@ impl StateManager {
                 debug!("Resetting {} to chunk {} because user seeked.", &id, chunk);
             }
 
-            Err(NightfallError::ChunkNotDone)
+            Err(Box::new(NightfallError::ChunkNotDone))
         } else {
             let chunk_path = session.chunk_to_path(chunk);
             let path = chunk_path.clone();
@@ -241,7 +239,7 @@ impl StateManager {
                 // occured) we can ignore this, but when the user seeks, the player doesnt query
                 // `init.mp4` again, so we have to move the video data from `init.mp4` into
                 // `N.m4s`.
-                Err(NightfallError::PartialSegment(_)) => {
+                Err(e) if matches!(e.as_ref(), NightfallError::PartialSegment(_)) => {
                     if session.chunks_since_init >= 1 {
                         debug!(
                             "Got a partial segment, patching because the user has most likely seeked."
@@ -255,12 +253,7 @@ impl StateManager {
                         .await
                         {
                             Ok(seq) => session.real_segment = seq,
-                            Err(e) => {
-                                warn!(
-                                    error = %e,
-                                    "Failed to patch init segment."
-                                )
-                            }
+                            Err(e) => warn!(error = %e, "Failed to patch init segment."),
                         }
                     }
                 }
@@ -355,7 +348,9 @@ impl StateManager {
             let _ = session.start().await;
         }
 
-        session.subtitle(name).ok_or(NightfallError::ChunkNotDone)
+        session
+            .subtitle(name)
+            .ok_or(Box::new(NightfallError::ChunkNotDone))
     }
 
     #[handler]
@@ -365,7 +360,7 @@ impl StateManager {
             .sessions
             .get_mut(&id)
             .ok_or(NightfallError::SessionDoesntExist)?;
-        session.stderr().ok_or(NightfallError::Aborted)
+        session.stderr().ok_or(Box::new(NightfallError::Aborted))
     }
 
     #[handler]
@@ -428,7 +423,9 @@ impl StateManager {
             .get_mut(&id)
             .ok_or(NightfallError::SessionDoesntExist)?;
 
-        session.take_stdout().ok_or(NightfallError::Aborted)
+        session
+            .take_stdout()
+            .ok_or(Box::new(NightfallError::Aborted))
     }
 
     #[handler]
@@ -438,7 +435,7 @@ impl StateManager {
             .get_mut(&id)
             .ok_or(NightfallError::SessionDoesntExist)?;
 
-        session.start().await.map_err(|_| NightfallError::Aborted)
+        Ok(session.start().await.map_err(|_| NightfallError::Aborted)?)
     }
 
     #[handler]

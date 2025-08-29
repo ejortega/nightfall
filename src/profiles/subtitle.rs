@@ -36,17 +36,17 @@ impl TranscodingProfile for WebvttTranscodeProfile {
         Some(args)
     }
 
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
         if ["srt", "ass", "ssa", "subrip"].contains(&ctx.input_ctx.codec.as_str())
             && ctx.output_ctx.codec == "webvtt"
         {
             return Ok(());
         }
 
-        Err(NightfallError::ProfileNotSupported(format!(
+        Err(Box::new(NightfallError::ProfileNotSupported(format!(
             "Codec {} not supported.",
             ctx.input_ctx.codec.as_str()
-        )))
+        ))))
     }
 
     fn tag(&self) -> &str {

@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Seek;
-use std::io::SeekFrom;
 use std::io::prelude::*;
 use std::path::Path;
 
@@ -40,7 +39,7 @@ impl Segment {
     }
 
     pub fn from_reader(mut reader: impl BufRead + Seek, size: u64) -> Result<(Self, u64)> {
-        let start = reader.seek(SeekFrom::Current(0))?;
+        let start = reader.stream_position()?;
 
         let mut current = start;
         let mut segment = Self::default();
@@ -61,7 +60,7 @@ impl Segment {
 
                     // Since mdat would be the last box in the segment, we just return the segment
                     // here as well as the leftover bytes.
-                    let leftover_bytes = reader.seek(SeekFrom::Current(0))?;
+                    let leftover_bytes = reader.stream_position()?;
                     return Ok((segment, leftover_bytes));
                 }
                 BoxType::StypBox => {
@@ -75,7 +74,7 @@ impl Segment {
                 }
             }
 
-            current = reader.seek(SeekFrom::Current(0))?;
+            current = reader.stream_position()?;
         }
 
         // NOTE: In some cases, we could get here without a complete segment existing.
@@ -92,12 +91,11 @@ impl Segment {
     /// Method will create a styp box for this segment if it doesnt exist
     pub fn gen_styp(mut self) -> Self {
         if self.styp.is_none() {
-            let mut styp = FtypBox::default();
-            styp.box_type = BoxType::StypBox;
-
-            self.styp = Some(styp);
+            self.styp = Some(FtypBox {
+                box_type: BoxType::StypBox,
+                ..Default::default()
+            });
         }
-
         self
     }
 
@@ -123,10 +121,9 @@ impl Segment {
             .moof
             .as_mut()
             .and_then(|x| x.trafs.get_mut(0).and_then(|x| x.tfdt.as_mut()))
+            && let Some(sidx) = self.sidx.as_ref()
         {
-            if let Some(sidx) = self.sidx.as_ref() {
-                tfdt.base_media_decode_time = sidx.earliest_presentation_time;
-            }
+            tfdt.base_media_decode_time = sidx.earliest_presentation_time;
         }
 
         self
@@ -163,16 +160,17 @@ impl Segment {
 /// # Returns
 /// This function will return the index of the current segment.
 pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32) -> Result<u32> {
-    spawn_blocking(move || {
+    Ok(spawn_blocking(move || {
         let f = File::open(&file)?;
         let size = f.metadata()?.len();
         let mut reader = BufReader::new(f);
 
         let mut segments = VecDeque::new();
-        let mut current = reader.seek(SeekFrom::Current(0))?;
+        let mut current = reader.stream_position()?;
 
         while current < size {
-            let (segment, new_position) = Segment::from_reader(&mut reader, size)?;
+            let (segment, new_position) =
+                Segment::from_reader(&mut reader, size).map_err(|e| *e)?;
             segments.push_back(segment);
             current = new_position;
         }
@@ -190,7 +188,11 @@ pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32
         while let Some(segment) = segments.pop_front() {
             // Here we normalize the DTS to be equal to the EPT/PTS and we also set the corrent
             // segment number.
-            segment.gen_styp().set_segno(seq).write(&mut f)?;
+            segment
+                .gen_styp()
+                .set_segno(seq)
+                .write(&mut f)
+                .map_err(|e| *e)?;
 
             seq += 1;
         }
@@ -198,5 +200,5 @@ pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32
         Ok(seq)
     })
     .await
-    .unwrap()
+    .unwrap()?)
 }

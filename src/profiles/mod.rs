@@ -49,7 +49,7 @@ pub fn profiles_init(_ffmpeg_bin: String) {
         Some(Box::new(AmfTranscodeProfile)),
     ];
 
-    let profiles = profiles.into_iter().filter_map(|x| x).collect::<Vec<_>>();
+    let profiles = profiles.into_iter().flatten().collect::<Vec<_>>();
 
     let _ = PROFILES.set(
         profiles
@@ -155,7 +155,7 @@ pub trait TranscodingProfile: Debug + Send + Sync + 'static {
     /// By default this function is auto-implemented to return `true`, however for complex
     /// profiles such as VAAPI we may want at run-time to check whether ffmpeg will actually
     /// transcode the given file.
-    fn is_enabled(&self) -> Result<(), NightfallError> {
+    fn is_enabled(&self) -> Result<(), Box<NightfallError>> {
         Ok(())
     }
 
@@ -167,7 +167,7 @@ pub trait TranscodingProfile: Debug + Send + Sync + 'static {
     /// Function will return whether the conversion to `codec_out` is possible. Some
     /// implementations of this function (HWAccelerated profiles) will also check whether
     /// a direct conversion betwen`codec_in` and `codec_out` is possible.
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError>;
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>>;
 
     /// Return tag of this profile.
     fn tag(&self) -> &str;

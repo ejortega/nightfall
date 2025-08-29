@@ -14,6 +14,6 @@ where
     T: WriteBox<File>,
 {
     fn write_box<'a>(&self, writer: File) -> Result<u64> {
-        Ok(<T as WriteBox<File>>::write_box(&self, writer)?)
+        Ok(<T as WriteBox<File>>::write_box(self, writer)?)
     }
 }

@@ -1,7 +1,7 @@
 use serde::Serialize;
 use thiserror::Error;
 
-pub type Result<T> = std::result::Result<T, NightfallError>;
+pub type Result<T> = std::result::Result<T, Box<NightfallError>>;
 
 #[derive(Clone, Debug, Error, Serialize)]
 pub enum NightfallError {
@@ -34,8 +34,20 @@ impl From<mp4::Error> for NightfallError {
     }
 }
 
+impl From<mp4::Error> for Box<NightfallError> {
+    fn from(e: mp4::Error) -> Self {
+        Box::new(NightfallError::from(e))
+    }
+}
+
 impl From<std::io::Error> for NightfallError {
     fn from(_: std::io::Error) -> Self {
         Self::IoError
+    }
+}
+
+impl From<std::io::Error> for Box<NightfallError> {
+    fn from(e: std::io::Error) -> Self {
+        Box::new(NightfallError::from(e))
     }
 }

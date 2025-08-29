@@ -82,7 +82,7 @@ impl TranscodingProfile for VaapiTranscodeProfile {
         "VaapiTranscodeProfile"
     }
 
-    fn is_enabled(&self) -> Result<(), NightfallError> {
+    fn is_enabled(&self) -> Result<(), Box<NightfallError>> {
         // Currently this profile only supports HW Encoding + decoding.
         let required_features = [
             "VAEntrypointEncSlice".to_string(),
@@ -135,10 +135,10 @@ impl TranscodingProfile for VaapiTranscodeProfile {
             return Ok(());
         }
 
-        Err(NightfallError::ProfileNotSupported(format!(
+        Err(Box::new(NightfallError::ProfileNotSupported(format!(
             "Device {} doesnt seem to support hardware transcoding.",
             self.vendor
-        )))
+        ))))
     }
 
     fn build(&self, ctx: ProfileContext) -> Option<Vec<String>> {
@@ -282,34 +282,30 @@ impl TranscodingProfile for VaapiTranscodeProfile {
 
     /// This profile technically could work on any codec since the codec is just `copy` here, but
     /// the container doesnt support it, so we will be constricting it down.
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
         let decode_entrypoint = "VAEntrypointVLD".to_string();
 
         if !["h264", "hevc"].contains(&ctx.input_ctx.codec.as_str()) {
-            return Err(NightfallError::ProfileNotSupported(
+            return Err(Box::new(NightfallError::ProfileNotSupported(
                 "Profile only supports decoding h264 or h265 video streams.".into(),
-            ));
+            )));
         }
 
         // NOTE: Checks if the HWAccel device supports decoding HEVC content.
         if ctx.input_ctx.codec == "hevc"
-            && self
-                .profiles
-                .iter()
-                .find(|x| {
-                    x.name == "VAProfileHEVCMain" && x.entrypoints.contains(&decode_entrypoint)
-                })
-                .is_none()
+            && self.profiles.iter().any(|x| {
+                x.name == "VAProfileHEVCMain" && x.entrypoints.contains(&decode_entrypoint)
+            })
         {
-            return Err(NightfallError::ProfileNotSupported(
+            return Err(Box::new(NightfallError::ProfileNotSupported(
                 "HW Acceleration device doesnt support decoding hevc content.".into(),
-            ));
+            )));
         }
 
         if ctx.output_ctx.codec != "h264" {
-            return Err(NightfallError::ProfileNotSupported(
+            return Err(Box::new(NightfallError::ProfileNotSupported(
                 "Profile only supports h264 output streams.".into(),
-            ));
+            )));
         }
 
         let profile = match [ctx.input_ctx.codec.as_str(), ctx.input_ctx.profile.as_str()] {
@@ -319,18 +315,18 @@ impl TranscodingProfile for VaapiTranscodeProfile {
             ["hevc", "Main"] => "VAProfileHEVCMain",
             ["hevc", "Main 10"] => "VAProfileHEVCMain10",
             [codec, profile] => {
-                return Err(NightfallError::ProfileNotSupported(format!(
+                return Err(Box::new(NightfallError::ProfileNotSupported(format!(
                     "Profile {} for {} not supported by device.",
                     profile, codec
-                )));
+                ))));
             }
         };
 
-        if self.profiles.iter().find(|x| x.name == profile).is_none() {
-            return Err(NightfallError::ProfileNotSupported(format!(
+        if !self.profiles.iter().any(|x| x.name == profile) {
+            return Err(Box::new(NightfallError::ProfileNotSupported(format!(
                 "Profile {} not supported by device.",
                 profile
-            )));
+            ))));
         }
 
         Ok(())
