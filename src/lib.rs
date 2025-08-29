@@ -24,7 +24,7 @@ use std::fmt;
 use std::time::Duration;
 use std::time::Instant;
 
-use async_trait::async_trait;
+// use async_trait::async_trait;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
@@ -59,17 +59,6 @@ pub struct StateManager {
     pub stream_stats: HashMap<String, StreamStat>,
     /// Contains the exit status of dead sessions
     pub exit_statuses: HashMap<String, String>,
-}
-
-impl fmt::Debug for __ActorStateManager::StateManager {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("StateManager")
-            .field("outdir", &self.outdir)
-            .field("ffmpeg", &self.ffmpeg)
-            .field("sessions", &self.sessions)
-            .field("exit_statuses", &self.exit_statuses)
-            .finish()
-    }
 }
 
 impl fmt::Debug for StateManager {
@@ -254,7 +243,9 @@ impl StateManager {
                 // `N.m4s`.
                 Err(NightfallError::PartialSegment(_)) => {
                     if session.chunks_since_init >= 1 {
-                        debug!("Got a partial segment, patching because the user has most likely seeked.");
+                        debug!(
+                            "Got a partial segment, patching because the user has most likely seeked."
+                        );
 
                         match patch_init_segment(
                             session.init_seg(),

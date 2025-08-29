@@ -5,7 +5,7 @@ use crate::Result;
 use mp4::mp4box::*;
 use std::fs::File;
 
-trait WriteBoxToFile {
+pub trait WriteBoxToFile {
     fn write_box(&self, writer: File) -> Result<u64>;
 }
 
