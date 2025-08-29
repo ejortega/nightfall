@@ -13,15 +13,21 @@ cfg_if::cfg_if! {
         }
 
         pub fn is_process_effectively_dead(pid: u32) -> bool {
-            use psutil::process::Status::*;
-            let process = psutil::process::Process::new(pid);
+            use sysinfo::{System, Pid, ProcessStatus, ProcessesToUpdate};
+            let mut sys = System::new();
+            let pid = Pid::from(pid as usize);
 
-            if let Ok(process) = process {
-                matches!(process.status(), Ok(Zombie) | Ok(Dead))
-            } else {
-                true
+            // Update just this PID; returns how many processes were updated.
+            let updated = sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+            if updated == 0 {
+                return true;
             }
 
+            match sys.process(pid).map(|p| p.status()) {
+                Some(ProcessStatus::Zombie) | Some(ProcessStatus::Dead) => true,
+                Some(_) => false,
+                None => true,
+            }
         }
     } else {
         use ntapi::ntpsapi::NtSuspendProcess;

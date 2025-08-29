@@ -41,8 +41,8 @@ xtra_proc = { git = "https://github.com/ejortega/xtra_proc.git" }
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.30.0", features = ["signal"] }
-psutil = { version = "5.4.0", default-features = false, features = ["process"] }
 rusty_vainfo = { version = "0.1.4", optional = true }
+sysinfo = "0.37.0"
 
 [target.'cfg(windows)'.dependencies]
 ntapi = "0.4.1"
