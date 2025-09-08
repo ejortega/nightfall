@@ -36,17 +36,17 @@ impl TranscodingProfile for WebvttTranscodeProfile {
         Some(args)
     }
 
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
         if ["srt", "ass", "ssa", "subrip"].contains(&ctx.input_ctx.codec.as_str())
             && ctx.output_ctx.codec == "webvtt"
         {
             return Ok(());
         }
 
-        Err(Box::new(NightfallError::ProfileNotSupported(format!(
+        Err(NightfallError::ProfileNotSupported(format!(
             "Codec {} not supported.",
             ctx.input_ctx.codec.as_str()
-        ))))
+        )))
     }
 
     fn tag(&self) -> &str {
@@ -91,16 +91,16 @@ impl TranscodingProfile for AssExtractProfile {
         Some(args)
     }
 
-    fn supports(&self, ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
+    fn supports(&self, ctx: &ProfileContext) -> Result<(), NightfallError> {
         if ["ass", "ssa"].contains(&ctx.input_ctx.codec.as_str())
             && ctx.output_ctx.codec.as_str() == "ass"
         {
             return Ok(());
         }
 
-        Err(Box::new(NightfallError::ProfileNotSupported(
+        Err(NightfallError::ProfileNotSupported(
             "Profile only supports extracting ass subtitles.".into(),
-        )))
+        ))
     }
 
     fn tag(&self) -> &str {

@@ -28,7 +28,7 @@ impl TranscodingProfile for CudaTranscodeProfile {
         "CudaTranscodeProfile"
     }
 
-    fn is_enabled(&self) -> Result<(), Box<NightfallError>> {
+    fn is_enabled(&self) -> Result<(), NightfallError> {
         // TODO: Add runtime profile support detection.
         Ok(())
     }
@@ -139,7 +139,7 @@ impl TranscodingProfile for CudaTranscodeProfile {
 
     /// This profile technically could work on any codec since the codec is just `copy` here, but
     /// the container doesnt support it, so we will be constricting it down.
-    fn supports(&self, _ctx: &ProfileContext) -> Result<(), Box<NightfallError>> {
+    fn supports(&self, _ctx: &ProfileContext) -> Result<(), NightfallError> {
         // TODO: At runtime check which file formats are supported by the current gpu for enc/dec.
         Ok(())
     }

@@ -1,7 +1,7 @@
 use serde::Serialize;
 use thiserror::Error;
 
-pub type Result<T> = std::result::Result<T, Box<NightfallError>>;
+pub type Result<T> = std::result::Result<T, NightfallError>;
 
 #[derive(Clone, Debug, Error, Serialize)]
 pub enum NightfallError {
@@ -25,7 +25,7 @@ pub enum NightfallError {
     ProfileChainExhausted,
     #[error("Parsed a partial segment.")]
     #[serde(skip_serializing)]
-    PartialSegment(crate::patch::segment::Segment),
+    PartialSegment(Box<crate::patch::segment::Segment>),
 }
 
 impl From<mp4::Error> for NightfallError {

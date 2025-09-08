@@ -92,7 +92,7 @@ impl StateManager {
         } else {
             tracing::error!(profile = ?profile_args, "Supplied profile chain is empty");
 
-            return Err(Box::new(NightfallError::ProfileChainExhausted));
+            return Err(NightfallError::ProfileChainExhausted);
         };
 
         let chain = profile_chain
@@ -151,7 +151,7 @@ impl StateManager {
                 info!("Session {} chunk={} trying profile {}", &id, chunk, x);
                 session.reset_to(session.start_num());
             } else {
-                return Err(Box::new(NightfallError::ProfileChainExhausted));
+                return Err(NightfallError::ProfileChainExhausted);
             }
         }
 
@@ -179,7 +179,7 @@ impl StateManager {
             return Ok(session.custom_init_seg(chunk));
         }
 
-        Err(Box::new(NightfallError::ChunkNotDone))
+        Err(NightfallError::ChunkNotDone)
     }
 
     #[handler]
@@ -222,7 +222,7 @@ impl StateManager {
                 debug!("Resetting {} to chunk {} because user seeked.", &id, chunk);
             }
 
-            Err(Box::new(NightfallError::ChunkNotDone))
+            Err(NightfallError::ChunkNotDone)
         } else {
             let chunk_path = session.chunk_to_path(chunk);
             let path = chunk_path.clone();
@@ -239,7 +239,7 @@ impl StateManager {
                 // occured) we can ignore this, but when the user seeks, the player doesnt query
                 // `init.mp4` again, so we have to move the video data from `init.mp4` into
                 // `N.m4s`.
-                Err(e) if matches!(e.as_ref(), NightfallError::PartialSegment(_)) => {
+                Err(NightfallError::PartialSegment(_)) => {
                     if session.chunks_since_init >= 1 {
                         debug!(
                             "Got a partial segment, patching because the user has most likely seeked."
@@ -348,9 +348,7 @@ impl StateManager {
             let _ = session.start().await;
         }
 
-        session
-            .subtitle(name)
-            .ok_or(Box::new(NightfallError::ChunkNotDone))
+        session.subtitle(name).ok_or(NightfallError::ChunkNotDone)
     }
 
     #[handler]
@@ -360,7 +358,7 @@ impl StateManager {
             .sessions
             .get_mut(&id)
             .ok_or(NightfallError::SessionDoesntExist)?;
-        session.stderr().ok_or(Box::new(NightfallError::Aborted))
+        session.stderr().ok_or(NightfallError::Aborted)
     }
 
     #[handler]
@@ -423,9 +421,7 @@ impl StateManager {
             .get_mut(&id)
             .ok_or(NightfallError::SessionDoesntExist)?;
 
-        session
-            .take_stdout()
-            .ok_or(Box::new(NightfallError::Aborted))
+        session.take_stdout().ok_or(NightfallError::Aborted)
     }
 
     #[handler]
@@ -435,7 +431,7 @@ impl StateManager {
             .get_mut(&id)
             .ok_or(NightfallError::SessionDoesntExist)?;
 
-        Ok(session.start().await.map_err(|_| NightfallError::Aborted)?)
+        session.start().await.map_err(|_| NightfallError::Aborted)
     }
 
     #[handler]

@@ -160,7 +160,7 @@ impl Segment {
 /// # Returns
 /// This function will return the index of the current segment.
 pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32) -> Result<u32> {
-    Ok(spawn_blocking(move || {
+    spawn_blocking(move || {
         let f = File::open(&file)?;
         let size = f.metadata()?.len();
         let mut reader = BufReader::new(f);
@@ -169,8 +169,7 @@ pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32
         let mut current = reader.stream_position()?;
 
         while current < size {
-            let (segment, new_position) =
-                Segment::from_reader(&mut reader, size).map_err(|e| *e)?;
+            let (segment, new_position) = Segment::from_reader(&mut reader, size)?;
             segments.push_back(segment);
             current = new_position;
         }
@@ -179,20 +178,16 @@ pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32
         // init segment. This is a problem when hard seeking as we lose out on ~5s of data, thus we
         // fix by patching the init segment and moving the data over.
         if segments.len() == 1 && segments[0].is_empty_segment() {
-            return Err(NightfallError::PartialSegment(
+            return Err(NightfallError::PartialSegment(Box::new(
                 segments.pop_front().unwrap(),
-            ));
+            )));
         }
 
         let mut f = File::create(&file)?;
         while let Some(segment) = segments.pop_front() {
             // Here we normalize the DTS to be equal to the EPT/PTS and we also set the corrent
             // segment number.
-            segment
-                .gen_styp()
-                .set_segno(seq)
-                .write(&mut f)
-                .map_err(|e| *e)?;
+            segment.gen_styp().set_segno(seq).write(&mut f)?;
 
             seq += 1;
         }
@@ -200,5 +195,5 @@ pub async fn patch_segment(file: impl AsRef<Path> + Send + 'static, mut seq: u32
         Ok(seq)
     })
     .await
-    .unwrap()?)
+    .unwrap()
 }
